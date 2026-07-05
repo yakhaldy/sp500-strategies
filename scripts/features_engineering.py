@@ -103,15 +103,8 @@ def prepare_final_dataset(stocks):
 
 
 
-if __name__ == "__main__":
-    stocks = load_data("data/all_stocks_5yr.csv")
-    data_info(stocks, "data/all_stocks_5yr.csv")
-    stocks = features_engineering(stocks)
 
-    train, test, feature_cols, target_col = prepare_final_dataset(stocks)
-    print("\ntrain from {} to {}".format(train.index.get_level_values('date').min(), train.index.get_level_values('date').max()))
-    print("test from {} to {}".format(test.index.get_level_values('date').min(), test.index.get_level_values('date').max()))
-    print("\nTrain shape:", train.shape)
-    print("Test shape:", test.shape)
-    print("\nFeatures:", feature_cols)
+
+
+
 
