@@ -6,10 +6,10 @@ Best Hyperparameters:
   model__max_depth: 3
   model__n_estimators: 100
 
-Average Validation AUC (CV): 0.5180
+Average Validation AUC (CV): 0.5175
 
 Full Pipeline Steps:
-  - imputer: SimpleImputer()
+  - imputer: SimpleImputer(strategy='median')
   - scaler: StandardScaler()
   - model: LGBMClassifier(learning_rate=0.01, max_depth=3, n_jobs=-1, random_state=42,
                verbose=-1)
