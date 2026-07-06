@@ -5,7 +5,7 @@ from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
 
 
-def build_cv_splits(train, n_splits=10):
+def time_series_split(train, n_splits=10):
     unique_dates = train.index.get_level_values('date').unique()
     start_date = unique_dates.min()
     max_date = unique_dates.max()
@@ -80,6 +80,29 @@ def get_x_y(df, feature_cols, target_col):
     return X, y
 
 
+##############################################
+from sklearn.pipeline import Pipeline 
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+RANDOM_STATE = 42
+##############################################
+def make_pipeline(model_name="rf"):
+    if model_name == "rf":
+        clf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=RANDOM_STATE, n_jobs=-1)
+    elif model_name == "gb":
+        clf = GradientBoostingClassifier(n_estimators=100, max_depth=3, learning_rate=0.05, random_state=RANDOM_STATE)
+    else:
+        clf = LogisticRegression(C=0.1, max_iter=500, random_state=RANDOM_STATE)
+    return Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler",  StandardScaler()),
+        ("clf",     clf),
+    ], memory=None)
+################################################
+
 def evaluate_fold(pipeline, X, y):
     proba = pipeline.predict_proba(X)[:, 1]
     pred = pipeline.predict(X)
@@ -89,42 +112,75 @@ def evaluate_fold(pipeline, X, y):
         'logloss': log_loss(y, proba)
     }
 
-def grid_search_cv(pipeline,folds, feature_cols, target_col):
-    results = []
-    best_score = float("-inf")
+def grid_search_cv(folds, feature_cols, target_col):
+    model_name = ["rf", "gb", "lr"]
+    best_auc = -np.inf
+    beast_model_name = None
     best_params = None
     best_fold_metrics = None
-
-    for params in ParameterGrid(param_grid):
-        pipeline.set_params(**params)
+    results = []
+    for mname in model_name:
         fold_metrics = []
-
         for fold_i, (train_fold, val_fold) in enumerate(folds):
-            X_train, y_train = get_x_y(train_fold, feature_cols, target_col)
-            X_val, y_val = get_x_y(val_fold, feature_cols, target_col)
-
-            pipeline.fit(X_train, y_train)
-
-            train_metrics = evaluate_fold(pipeline, X_train, y_train)
-            val_metrics = evaluate_fold(pipeline, X_val, y_val)
-
-            fold_metrics.append({
-                'fold': fold_i + 1,
-                'train_auc': train_metrics['auc'], 'train_accuracy': train_metrics['accuracy'], 'train_logloss': train_metrics['logloss'],
-                'val_auc': val_metrics['auc'], 'val_accuracy': val_metrics['accuracy'], 'val_logloss': val_metrics['logloss'],
-            })
-
+                X_train, y_train = get_x_y(train_fold, feature_cols, target_col)
+                X_val, y_val = get_x_y(val_fold, feature_cols, target_col)
+                pipe = make_pipeline(mname)
+                pipe.fit(X_train, y_train)
+                train_metrics = evaluate_fold(pipe, X_train, y_train)
+                val_metrics = evaluate_fold(pipe, X_val, y_val)
+                fold_metrics.append({
+                    'fold': fold_i + 1,
+                    'train_auc': train_metrics['auc'], 'train_accuracy': train_metrics['accuracy'], 'train_logloss': train_metrics['logloss'],
+                    'val_auc': val_metrics['auc'], 'val_accuracy': val_metrics['accuracy'], 'val_logloss': val_metrics['logloss'],
+                })
+                print(f"Model: {mname}, Fold {fold_i + 1}: Train AUC: {train_metrics['auc']:.4f}, Val AUC: {val_metrics['auc']:.4f}")
         avg_val_auc = sum(m['val_auc'] for m in fold_metrics) / len(fold_metrics)
-        results.append({"params": params, "avg_val_auc": avg_val_auc, "fold_metrics": fold_metrics})
-
-        if avg_val_auc > best_score:
-            best_score = avg_val_auc
-            best_params = params
+        print(f"Model: {mname}, Average Validation AUC: {avg_val_auc:.4f}")
+        if avg_val_auc > best_auc:
+            best_auc = avg_val_auc
+            best_model_name = mname
+            best_params = pipe.get_params()
             best_fold_metrics = fold_metrics
-
-    return results, best_params, best_fold_metrics
-
-
+        results.append({"params": best_params, "avg_val_auc": avg_val_auc, "fold_metrics": fold_metrics})
+        return results, best_params, best_fold_metrics
 
 
+    # results = []
+    # best_score = float("-inf")
+    # best_params = None
+    # best_fold_metrics = None
+
+    # for params in ParameterGrid(param_grid):
+    #     pipeline.set_params(**params)
+    #     fold_metrics = []
+
+    #     for fold_i, (train_fold, val_fold) in enumerate(folds):
+    #         X_train, y_train = get_x_y(train_fold, feature_cols, target_col)
+    #         X_val, y_val = get_x_y(val_fold, feature_cols, target_col)
+
+    #         pipeline.fit(X_train, y_train)
+
+    #         train_metrics = evaluate_fold(pipeline, X_train, y_train)
+    #         val_metrics = evaluate_fold(pipeline, X_val, y_val)
+
+    #         fold_metrics.append({
+    #             'fold': fold_i + 1,
+    #             'train_auc': train_metrics['auc'], 'train_accuracy': train_metrics['accuracy'], 'train_logloss': train_metrics['logloss'],
+    #             'val_auc': val_metrics['auc'], 'val_accuracy': val_metrics['accuracy'], 'val_logloss': val_metrics['logloss'],
+    #         })
+
+    #     avg_val_auc = sum(m['val_auc'] for m in fold_metrics) / len(fold_metrics)
+    #     results.append({"params": params, "avg_val_auc": avg_val_auc, "fold_metrics": fold_metrics})
+
+    #     if avg_val_auc > best_score:
+    #         best_score = avg_val_auc
+    #         best_params = params
+    #         best_fold_metrics = fold_metrics
+
+    # return results, best_params, best_fold_metrics
+
+
+
+if __name__ == "__main__":
+    grid_search_cv(make_pipeline("rf"), [], [], [])
 

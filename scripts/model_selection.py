@@ -10,16 +10,16 @@ from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
 
 
 from features_engineering import load_data, data_info, features_engineering, prepare_final_dataset
-from gridsearch import build_cv_splits, plot_cv_splits, grid_search_cv, get_x_y
+from gridsearch import time_series_split, plot_cv_splits, grid_search_cv, get_x_y
 
 
 
 
-pipeline = Pipeline([
-    ('imputer', SimpleImputer(strategy='mean')),
-    ('scaler', StandardScaler()),
-    ('model', LGBMClassifier(random_state=42, verbose=-1,  n_jobs=-1))
-])
+# pipeline = Pipeline([
+#     ('imputer', SimpleImputer(strategy='mean')),
+#     ('scaler', StandardScaler()),
+#     ('model', LGBMClassifier(random_state=42, verbose=-1,  n_jobs=-1))
+# ])
 
 
 
@@ -127,10 +127,10 @@ if __name__ == "__main__":
     print("\nTrain shape:", train.shape)
     print("Test shape:", test.shape)
     print("\nFeatures:", feature_cols)
-    folds = build_cv_splits(train, n_splits=10)
+    folds = time_series_split(train, n_splits=10)
     plot_cv_splits(folds, save_path='results/cross-validation/Time_series_split.png')
 
-    results, best_params, best_fold_metrics = grid_search_cv(pipeline, folds, feature_cols, target_col)
+    results, best_params, best_fold_metrics = grid_search_cv(folds, feature_cols, target_col)
     evaluate_model(train, test, feature_cols, target_col, best_params)
     best_result = max(results, key=lambda r: r['avg_val_auc'])
     save_model_info(pipeline, best_params, best_result['avg_val_auc'])
