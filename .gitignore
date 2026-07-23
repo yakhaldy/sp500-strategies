@@ -29,6 +29,7 @@ env/
 ENV/
 env.bak/
 venv.bak/
+sp500/
 
 # IDE
 .vscode/
@@ -45,6 +46,7 @@ venv.bak/
 
 # Model files
 *.pkl
+!results/selected-model/selected_model.pkl
 *.pickle
 *.joblib
 *.h5

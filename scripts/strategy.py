@@ -32,7 +32,7 @@ def compute_daily_pnl(weights, returns):
     return df.groupby(level='date')['pnl'].sum().sort_index()
 
 
-def load_benchmark_daily_pnl(dates, path='data/HistoricalPrices.csv'):
+def load_benchmark_daily_pnl(dates, path='data/HistoricalData.csv'):
     sp500 = pd.read_csv(path)
     sp500.columns = sp500.columns.str.strip().str.lower()
     sp500['date'] = pd.to_datetime(sp500['date'], format='%m/%d/%y')

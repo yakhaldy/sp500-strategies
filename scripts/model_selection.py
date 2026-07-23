@@ -89,16 +89,24 @@ def save_ml_metrics(best_fold_metrics, save_path="results/cross-validation/ml_me
 
 
 def plot_metric_train(ml_metrics_df, metric='auc', save_path='results/cross-validation/metric_train.png'):
+    import numpy as np
     pivot = ml_metrics_df.reset_index().pivot(index='fold', columns='set', values=metric)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(pivot.index, pivot['train'], marker='o', label='Train')
-    ax.plot(pivot.index, pivot['validation'], marker='o', label='Validation')
+    folds = pivot.index.tolist()
+    x = np.arange(len(folds))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(x - width / 2, pivot['train'], width, label='Train set', color='lightgrey', edgecolor='black')
+    ax.bar(x + width / 2, pivot['validation'], width, label='Validation set', color='olivedrab', edgecolor='black')
+
     ax.set_xlabel('Fold')
     ax.set_ylabel(metric.upper())
-    ax.set_title(f'{metric.upper()} across CV folds (train vs validation)')
+    ax.set_title(f'AUC on train and validation set\non all folds of the train set')
+    ax.set_xticks(x)
+    ax.set_xticklabels([f'Fold {f}' for f in folds])
     ax.legend()
-    ax.grid(alpha=0.3)
+    ax.grid(axis='y', alpha=0.3)
 
     plt.tight_layout()
     plt.savefig(save_path, dpi=150)
