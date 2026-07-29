@@ -13,6 +13,7 @@ def load_data(file_path):
         print(f"Error: File '{file_path}' not found.")
         return None
 
+
 def data_info(data, file_path):
     print("=" * 60)
     print("Data Info:", file_path)
@@ -53,72 +54,99 @@ def data_info(data, file_path):
 
 def features_engineering(stocks):
 
-    stocks['date'] = pd.to_datetime(stocks['date'], format="%Y-%m-%d")
-    stocks = stocks.dropna()
-    stocks = stocks[stocks['name'] != 'APTV']
-    stocks = stocks.sort_values(['name', 'date']).reset_index(drop=True)
+    stocks['date'] = pd.to_datetime(stocks['date'])
+
+    stocks = stocks.dropna(
+        subset=['date','name','close']
+    )
+
+    stocks = stocks[
+        stocks['name'] != 'APTV'
+    ]
+
+    stocks = stocks.sort_values(
+        ['name','date']
+    ).reset_index(drop=True)
+
 
     close_d1 = stocks.groupby('name')['close'].shift(-1)
     close_d2 = stocks.groupby('name')['close'].shift(-2)
 
-    stocks['return_d1_d2'] = (close_d2 - close_d1) / close_d1
+    stocks['return_d1_d2'] = (
+        close_d2 - close_d1
+    ) / close_d1
 
-    stocks['target'] = np.sign(stocks['return_d1_d2'])
-
-    print("NAN values in target:", stocks['target'].isnull().sum())
-    stocks = stocks.dropna(subset=['target'])
-    stocks = stocks.reset_index(drop=True)
-
-    # sample = stocks[stocks['name'] == 'AAL'].tail(5)
-    # print(sample[['date', 'close', 'return_d1_d2', 'target']])
-
-    #RSI
-    stocks['rsi'] = (
-    stocks.groupby('name')['close']
-          .transform(lambda x: ta.momentum.rsi(x, window=14))
+    stocks['target'] = np.sign(
+        stocks['return_d1_d2']
     )
-    print("\nNAN values in rsi:", stocks['rsi'].isnull().sum())
+
+    stocks = stocks.dropna(
+        subset=['target']
+    )
+
+
+    # RSI
+    stocks['rsi'] = stocks.groupby('name')['close'].transform(
+        lambda x: ta.momentum.rsi(x, window=14)
+    )
 
 
     # MACD
-    stocks['macd'] = (
-    stocks.groupby('name')['close']
-          .transform(lambda x: ta.trend.macd(x))
+    stocks['macd'] = stocks.groupby('name')['close'].transform(
+        lambda x: ta.trend.macd(x)
     )
-    print("NAN values in macd:", stocks['macd'].isnull().sum())
 
-    #Bollinger Bands
+
+    # Bollinger
     stocks['bb_high'] = stocks.groupby('name')['close'].transform(
-        lambda x: ta.volatility.bollinger_hband(x, window=20))
-    stocks['bb_low'] = stocks.groupby('name')['close'].transform(
-        lambda x: ta.volatility.bollinger_lband(x, window=20))
-    stocks['bb_position'] = (stocks['close'] - stocks['bb_low']) / (stocks['bb_high'] - stocks['bb_low'])
+        lambda x: ta.volatility.bollinger_hband(x, window=20)
+    )
 
-    print("\nbefore drop nan: Shape", stocks.shape)
-    stocks = stocks.dropna(subset=['rsi', 'macd', 'bb_high', 'bb_low'])
-    stocks = stocks.reset_index(drop=True)
-    print("after drop nan: Shape", stocks.shape)
+    stocks['bb_low'] = stocks.groupby('name')['close'].transform(
+        lambda x: ta.volatility.bollinger_lband(x, window=20)
+    )
+
+
+    stocks['bb_position'] = (
+        (stocks['close'] - stocks['bb_low']) /
+        (stocks['bb_high'] - stocks['bb_low'])
+    )
+
+
+    stocks = stocks.replace(
+        [np.inf, -np.inf],
+        np.nan
+    )
+
+
+    stocks = stocks.dropna().reset_index(drop=True)
+
 
     return stocks
 
 
-
-
 def prepare_final_dataset(stocks):
-    stocks = stocks.set_index(['date', 'name']).sort_index()
 
-    feature_cols = ['rsi', 'macd', 'bb_high', 'bb_low', 'bb_position']
-    target_col = 'target'
-    
-    # Split
-    dates = stocks.index.get_level_values('date')
-    train = stocks[dates < '2017-01-01']
-    test = stocks[dates >= '2017-01-01']
-    
+    stocks = stocks.set_index(["date", "name"]).sort_index()
+
+    feature_cols = [
+        "rsi",
+        "macd",
+        "bb_high",
+        "bb_low",
+        "bb_position",
+    ]
+
+    target_col = "target"
+
+    split_date = "2017-01-01"
+
+    dates = stocks.index.get_level_values("date")
+
+    train = stocks[dates < split_date]
+    test = stocks[dates >= split_date]
+
     return train, test, feature_cols, target_col
-
-
-
 
 
 
