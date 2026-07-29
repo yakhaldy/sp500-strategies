@@ -2,33 +2,53 @@ import pandas as pd
 import numpy as np
 import ta 
 
+import pandas as pd
+
 def load_data(file_path):
-    df = pd.read_csv(file_path)
-    df.columns = df.columns.str.strip().str.lower()
-    return df
+    try:
+        df = pd.read_csv(file_path)
+        df.columns = df.columns.str.strip().str.lower()
+        return df
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        return None
 
 def data_info(data, file_path):
-    print("=="*40 + "\n==> Data Info:" + file_path)
-    print("Data Shape:", data.shape)
+    print("=" * 60)
+    print("Data Info:", file_path)
+    print("=" * 60)
+
+    print("\nShape:")
+    print(data.shape)
+
+    print("\nHead:")
     print(data.head())
+
+    print("\nData Types:")
     print(data.dtypes)
 
-    data['date'] = pd.to_datetime(data['date'], format="%Y-%m-%d")
+    if "date" in data.columns:
+        data['date'] = pd.to_datetime(data['date'], format="%Y-%m-%d")
 
-    print("\nnumber of tickers:", len(data['name'].unique()))
-    print("tickers:", data['name'].unique()[:10])
+        print("\nDate range:")
+        print(data["date"].min(), "to", data["date"].max())
 
-    print("\nfrom {} to {}".format(data['date'].min(), data['date'].max()))
+    if "name" in data.columns:
+        print("\nNumber of tickers:")
+        print(data["name"].nunique())
 
-    print("Missing values")
+        print("\nTickers:")
+        print(data["name"].unique()[:10])
+
+        counts = data.groupby("name").size()
+
+        print("\nDays per ticker:")
+        print("Min:", counts.min())
+        print("Max:", counts.max())
+        print("Mean:", counts.mean())
+
+    print("\nMissing values:")
     print(data.isnull().sum())
-
-    counts_per_ticker = data.groupby('name').size()
-    print("\nmin days per ticker:", counts_per_ticker.min())
-    print("max days per ticker:", counts_per_ticker.max())
-    print("mean days per ticker:", counts_per_ticker.mean())
-
-    print("\nnumber of tickers with less than 100 days:", counts_per_ticker[counts_per_ticker < 100])
 
 
 def features_engineering(stocks):
