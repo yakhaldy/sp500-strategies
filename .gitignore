@@ -64,3 +64,7 @@ sp500/
 # OS
 .DS_Store
 Thumbs.db
+data/all_stocks_5yr.csv
+results/selected-model/ml_signal.csv
+results/selected-model/selected_model.pkl
+*.png
