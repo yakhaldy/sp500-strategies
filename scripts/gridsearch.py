@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,63 +15,81 @@ RANDOM_STATE = 42
 
 
 def build_cv_splits(train, n_splits=10, min_train_years=2):
-    
-    unique_dates = train.index.get_level_values('date').unique().sort_values()
+
+    dates = train.index.get_level_values("date")
+    unique_dates = dates.unique().sort_values()
+
     start_date = unique_dates.min()
     min_train_end_date = start_date + pd.DateOffset(years=min_train_years)
+
     remaining_dates = unique_dates[unique_dates > min_train_end_date]
 
     tscv = TimeSeriesSplit(n_splits=n_splits)
 
     folds = []
+
     print("\n==> Building CV splits...")
+
     for fold_i, (train_idx, val_idx) in enumerate(tscv.split(remaining_dates)):
+
         train_dates = remaining_dates[train_idx]
         val_dates = remaining_dates[val_idx]
 
-        fixed_part = train[train.index.get_level_values('date') <= min_train_end_date]
-        expanding_part = train[train.index.get_level_values('date').isin(train_dates)]
+        fixed_part = train[dates <= min_train_end_date]
+        expanding_part = train[dates.isin(train_dates)]
 
         train_fold = pd.concat([fixed_part, expanding_part]).sort_index()
-        val_fold = train[train.index.get_level_values('date').isin(val_dates)]
+        val_fold = train[dates.isin(val_dates)]
 
         folds.append((train_fold, val_fold))
-        print("Fold {}: Train from {} to {} ({} rows), Val from {} to {} ({} rows)".format(
-            fold_i + 1,
-            train_fold.index.get_level_values('date').min(),
-            train_fold.index.get_level_values('date').max(),
-            len(train_fold),
-            val_fold.index.get_level_values('date').min(),
-            val_fold.index.get_level_values('date').max(),
-            len(val_fold),
-        ))
+
+        print(
+            f"Fold {fold_i + 1}: "
+            f"Train {train_fold.index.get_level_values('date').min()} → "
+            f"{train_fold.index.get_level_values('date').max()} "
+            f"({len(train_fold)} rows), "
+            f"Validation {val_fold.index.get_level_values('date').min()} → "
+            f"{val_fold.index.get_level_values('date').max()} "
+            f"({len(val_fold)} rows)"
+        )
 
     return folds
+    
+    
+def plot_cv_splits(
+    folds,
+    save_path="results/cross-validation/Time_series_split.png" ):
 
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-def plot_cv_splits(folds, save_path='results/cross-validation/Time_series_split.png'):
     fig, ax = plt.subplots(figsize=(14, 6))
 
     for fold_i, (train_fold, val_fold) in enumerate(folds):
-        train_dates = train_fold.index.get_level_values('date').unique()
-        val_dates = val_fold.index.get_level_values('date').unique()
+
+        train_dates = train_fold.index.get_level_values("date").unique()
+        val_dates = val_fold.index.get_level_values("date").unique()
 
         ax.scatter(train_dates, [fold_i] * len(train_dates),
                    c='steelblue', s=40, label='Train' if fold_i == 0 else "")
         ax.scatter(val_dates, [fold_i] * len(val_dates),
                    c='orange', s=40, label='Validation' if fold_i == 0 else "")
 
+    ax.set_title("Time Series Cross-Validation Splits")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Fold")
+
     ax.set_yticks(range(len(folds)))
-    ax.set_yticklabels([f'Fold {i + 1}' for i in range(len(folds))])
-    ax.set_xlabel('Date')
-    ax.set_ylabel('Fold')
-    ax.set_title('Time Series Cross-Validation Splits')
-    ax.legend(loc='upper left')
+    ax.set_yticklabels([f"Fold {i+1}" for i in range(len(folds))])
+
+    ax.legend()
     ax.invert_yaxis()
 
+    fig.autofmt_xdate()
     plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
+
+    plt.savefig(save_path, dpi=300)
     plt.close(fig)
+
     print(f"Image saved to: {save_path}")
 
 

@@ -147,12 +147,3 @@ def prepare_final_dataset(stocks):
     test = stocks[dates >= split_date]
 
     return train, test, feature_cols, target_col
-
-
-
-
-
-
-
-
-
