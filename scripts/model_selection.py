@@ -1,5 +1,6 @@
 import joblib
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.base import clone
 
@@ -89,7 +90,7 @@ def save_ml_metrics(best_fold_metrics, save_path="results/cross-validation/ml_me
 
 
 def plot_metric_train(ml_metrics_df, metric='auc', save_path='results/cross-validation/metric_train.png'):
-    import numpy as np
+    
     pivot = ml_metrics_df.reset_index().pivot(index='fold', columns='set', values=metric)
 
     folds = pivot.index.tolist()

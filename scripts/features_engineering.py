@@ -113,6 +113,12 @@ def features_engineering(stocks):
     )
 
 
+    # Stochastic oscillator
+    stocks['stoch'] = stocks.groupby('name').apply(
+        lambda x: ta.momentum.stoch(x['high'], x['low'], x['close'])
+    ).reset_index(level=0, drop=True)
+
+
     stocks = stocks.replace(
         [np.inf, -np.inf],
         np.nan
@@ -135,6 +141,7 @@ def prepare_final_dataset(stocks):
         "bb_high",
         "bb_low",
         "bb_position",
+        "stoch"
     ]
 
     target_col = "target"

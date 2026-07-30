@@ -4,7 +4,7 @@ Machine learning pipeline to generate a trading signal on S&P 500 constituents a
 
 ## Approach
 
-1. **Feature engineering** — Compute RSI, MACD, and Bollinger Bands per ticker from OHLCV data, with a 2-day forward return as target (no leakage: features on day D predict `return(D+1, D+2)`).
+1. **Feature engineering** — Compute RSI, MACD, Stochastic, and Bollinger Bands per ticker from OHLCV data, with a 2-day forward return as target (no leakage: features on day D predict `return(D+1, D+2)`).
 2. **Cross-validation** — Time Series Split with 10 expanding folds on the train set (pre-2017). Grid search over LightGBM hyperparameters.
 3. **Signal generation** — Walk-forward: for each fold, the pipeline is trained on the fold's train set and predicts on its validation set. Predictions are concatenated to form the full ML signal.
 4. **Strategy** — Binary long-only: go long $1 evenly distributed across stocks whose signal exceeds 0.5 each day.
