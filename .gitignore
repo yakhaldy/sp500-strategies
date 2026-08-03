@@ -46,7 +46,7 @@ sp500/
 
 # Model files
 # *.pkl
-!results/selected-model/selected_model.pkl
+#!results/selected-model/selected_model.pkl
 *.pickle
 *.joblib
 *.h5
@@ -66,5 +66,5 @@ sp500/
 Thumbs.db
 data/all_stocks_5yr.csv
 results/selected-model/ml_signal.csv
-results/selected-model/selected_model.pkl
+#results/selected-model/selected_model.pkl
 *.png
