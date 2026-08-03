@@ -45,7 +45,7 @@ sp500/
 
 
 # Model files
-*.pkl
+# *.pkl
 !results/selected-model/selected_model.pkl
 *.pickle
 *.joblib
