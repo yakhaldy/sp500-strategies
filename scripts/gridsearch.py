@@ -107,18 +107,18 @@ def build_pipeline():
     ])
 
 
-#param_grid = {
-#    'model__n_estimators': [100, 200],
-#    'model__max_depth': [3, 5],
-#    'model__learning_rate': [0.01, 0.1],
-#}
 param_grid = {
-    'model__n_estimators': [100, 200, 300],
-    'model__max_depth':    [3, 5, 7],
-    'model__learning_rate': [0.01, 0.05, 0.1],
-    'model__num_leaves':   [31, 63],       # LightGBM-specific
-    'model__min_child_samples': [20, 50],  # régularisation
+   'model__n_estimators': [100, 200],
+   'model__max_depth': [3, 5],
+   'model__learning_rate': [0.01, 0.1],
 }
+# param_grid = {
+#     'model__n_estimators': [100, 200, 300],
+#     'model__max_depth':    [3, 5, 7],
+#     'model__learning_rate': [0.01, 0.05, 0.1],
+#     'model__num_leaves':   [31, 63],       # LightGBM-specific
+#     'model__min_child_samples': [20, 50],  # régularisation
+# }
 
 
 
