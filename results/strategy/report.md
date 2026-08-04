@@ -7,12 +7,13 @@ Computed per ticker (`groupby('name')`) from the OHLCV data in `all_stocks_5yr.c
 - **RSI** (Relative Strength Index, 14-day window) — `rsi`
 - **MACD** (12/26-day) — `macd`
 - **Bollinger Bands** (20-day window) — `bb_high`, `bb_low`, and `bb_position` (the close price's relative position between the two bands)
+- **Stochastic Oscillator** (%K, 14-day window with 3-day smoothing, from `high`/`low`/`close`) — `stoch`
 
 Rows with NaN indicators (the first ~20 trading days of history per ticker, needed to warm up the rolling windows) are dropped. `APTV` is excluded: it only has 44 rows in the dataset (its history starts in Dec-2017), not enough for the 20-day rolling indicators.
 
 ### Target (no leakage)
 
-On day D, the target is `sign(return(D+1, D+2))`, computed from `close` shifted by -1 and -2 within each ticker **before** the technical indicators are computed. Since RSI/MACD/Bollinger on row D only use information available up to close of day D, and the target on row D is intentionally the *future* return between D+1 and D+2, the feature/target alignment matches the schema required by the assignment with no forward-looking leakage.
+On day D, the target is `sign(return(D+1, D+2))`, computed from `close` shifted by -1 and -2 within each ticker **before** the technical indicators are computed. Since RSI/MACD/Bollinger/Stochastic on row D only use information available up to close of day D, and the target on row D is intentionally the *future* return between D+1 and D+2, the feature/target alignment matches the schema required by the assignment with no forward-looking leakage.
 
 ## 2. Pipeline used
 
@@ -20,7 +21,7 @@ On day D, the target is `sign(return(D+1, D+2))`, computed from `close` shifted 
 |---|---|
 | Imputer | `SimpleImputer(strategy="median")` — safety net; features have no NaN left after the feature-engineering drop, so this step is a no-op in practice |
 | Scaler | `StandardScaler()` |
-| Dimension reduction | **None.** Only 5 low-dimensional, already-interpretable handcrafted features. Adding PCA would replace `rsi`/`macd`/`bb_*` with opaque components, which conflicts with the required per-feature importance deliverable (`top_10_feature_importance.csv`) — so this step is intentionally omitted. |
+| Dimension reduction | **None.** Only 6 low-dimensional, already-interpretable handcrafted features (`rsi`, `macd`, `bb_high`, `bb_low`, `bb_position`, `stoch`). Adding PCA would replace them with opaque components, which conflicts with the required per-feature importance deliverable (`top_10_feature_importance.csv`) — so this step is intentionally omitted. |
 | Model | `LGBMClassifier` |
 
 The single canonical pipeline is defined once in `scripts/gridsearch.py::build_pipeline()` and reused identically by `model_selection.py` and `create_signal.py`, so the exact same pipeline is used for hyperparameter search, feature importance, and signal generation.
@@ -41,12 +42,12 @@ See `results/cross-validation/Time_series_split.png`.
 Grid search over `LGBMClassifier` hyperparameters (`n_estimators`, `max_depth`, `learning_rate`) on the 10 CV folds, picking the combination with the best **average validation AUC**:
 
 - Best params: `n_estimators=100, max_depth=3, learning_rate=0.01`
-- Average validation AUC (CV): **0.5175**
-- Test AUC (2017+, never seen during CV): **0.4952**
+- Average validation AUC (CV): **0.5150**
+- Test AUC (2017+, never seen during CV): **0.4952** [NON VÉRIFIÉ — this value is only printed to console by `model_selection.py`/`evaluate_model()`, not persisted to any file, so it could not be re-confirmed from stored artifacts. Re-run `scripts/model_selection.py` to confirm.]
 
 See `results/cross-validation/ml_metrics_train.csv`, `metric_train.png`, `top_10_feature_importance.csv`, `results/selected-model/selected_model.txt`.
 
-Predicting next-day stock direction from price-based technical indicators alone is close to a coin flip (AUC ≈ 0.50-0.52 across folds) — expected given the efficient-market literature and the small feature set. `bb_position` and `rsi` are consistently the two most important features across folds.
+Predicting next-day stock direction from price-based technical indicators alone is close to a coin flip (AUC ≈ 0.49-0.52 across folds) — expected given the efficient-market literature and the small feature set. `stoch` is the single most important feature in 6 of the 10 folds (folds 1-6), with `bb_position` taking over in folds 8-10 and `rsi` in fold 7 — `macd` and `bb_position` are otherwise consistently in the top 3.
 
 ## 5. Machine learning signal
 
